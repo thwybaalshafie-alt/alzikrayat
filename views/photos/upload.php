@@ -1,89 +1,76 @@
-<!DOCTYPE html>
-<html lang="en">
+<div class="row justify-content-center mt-5 mb-5">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow border-0 rounded-lg">
+            <div class="card-header bg-primary text-white text-center py-3">
+                <h3 class="mb-0">Upload New Photo</h3>
+            </div>
+            <div class="card-body p-4">
+                <form id="uploadForm" action="/alzikrayat/public/photo/store" method="POST" enctype="multipart/form-data" novalidate>
+                    
+                    <div class="mb-4">
+                        <label for="photos" class="form-label fw-bold">Choose Photos:</label>
+                        <input type="file" class="form-control" id="photos" name="photos[]" accept="image/*" multiple required>
+                        <div class="invalid-feedback">Please select at least one photo to upload.</div>
+                        <div class="form-text">You can select multiple photos at once. Maximum 5MB per photo.</div>
+                    </div>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <div class="mb-3">
+                        <label for="title" class="form-label fw-bold">Title:</label>
+                        <input type="text" class="form-control" id="title" name="title" required minlength="3" maxlength="100" placeholder="Give your photo a title">
+                        <div class="invalid-feedback">Title must be between 3 and 100 characters.</div>
+                    </div>
 
-    <title>Upload Photo - Alzikrayat</title>
-</head>
+                    <div class="mb-4">
+                        <label for="description" class="form-label fw-bold">Description (Optional):</label>
+                        <textarea class="form-control" id="description" name="description" rows="4" maxlength="500" placeholder="Tell a story about this photo..."></textarea>
+                        <div class="form-text">Maximum 500 characters.</div>
+                    </div>
 
-<body>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-cloud-upload"></i> Upload Photo
+                        </button>
+                        <a href="/alzikrayat/public/photos" class="btn btn-outline-secondary">
+                            Cancel & Back to Gallery
+                        </a>
+                    </div>
 
-    <h1>Upload Photo</h1>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <form action="/alzikrayat/public/photo/store" method="POST" enctype="multipart/form-data">
+<script>
+    // Client-side validation
+    (function () {
+        'use strict'
+        var form = document.getElementById('uploadForm');
+        form.addEventListener('submit', function (event) {
+            const title = document.getElementById('title').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const photos = document.getElementById('photos').files;
 
-        <label>Choose Photo:</label>
-        <br>
-        <input type="file" name="photos[]" accept="image/*" multiple required>
+            let isValid = form.checkValidity();
 
-        <br><br>
+            if (photos.length === 0) {
+                isValid = false;
+            }
 
-        <label>Title:</label>
-        <br>
-        <input
-         type="text"
-         name="title" 
-         required
-         minlength = "3"
-         maxlength = "100"
-         >
+            if (title.length < 3 || title.length > 100) {
+                isValid = false;
+            }
 
-        <br><br>
+            if (description.length > 500) {
+                isValid = false;
+            }
 
-        <label>Description:</label>
-        <br>
-        <textarea 
-        name="description"
-        maxlength ="500"
-        ></textarea>
-
-        <br><br>
-
-        <button type="submit">Upload Photo</button>
-
-    </form>
-
-    <br>
-
-    <a href="/alzikrayat/public/photos">
-        Back to Gallery
-    </a>
-
-    <script>
-
-const form = document.querySelector('form');
-
-form.addEventListener('submit', function(event) {
-
-    const title = document.querySelector('input[name="title"]').value.trim();
-    const description = document.querySelector('textarea[name="description"]').value.trim();
-    const photos = document.querySelector('input[name="photos[]"]').files;
-
-    if (photos.length === 0) {
-        alert('Please select at least one photo.');
-        event.preventDefault();
-        return;
-    }
-
-    if (title.length < 3 || title.length > 100) {
-        alert('Title must be between 3 and 100 characters.');
-        event.preventDefault();
-        return;
-    }
-
-    if (description.length > 500) {
-        alert('Description must not exceed 500 characters.');
-        event.preventDefault();
-        return;
-    }
-
-});
-
+            if (!isValid) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+        }, false)
+    })()
 </script>
-
-
-</body>
-
-</html>

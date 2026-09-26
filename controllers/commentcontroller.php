@@ -24,12 +24,12 @@ class CommentController extends Controller
         }
 
         if (strlen($comment)<3){
-            echo "Comment must be at least 3 characters."
+            echo "Comment must be at least 3 characters.";
             return ;
         }
         
         if (strlen($comment)>500){
-            echo "Comment must not exceed 500 characters."
+            echo "Comment must not exceed 500 characters.";
             return ;
         }
 
