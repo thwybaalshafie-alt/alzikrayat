@@ -12,7 +12,7 @@ const registerSchema = Joi.object({
     'string.empty': 'Last name is required',
     'string.min': 'Last name must be at least 2 characters',
   }),
-  email: Joi.string().trim().lowercase().email().required().messages({
+  email: Joi.string().trim().lowercase().email({ tlds: { allow: false } }).required().messages({
     'string.empty': 'Email is required',
     'string.email': 'Please enter a valid email address',
   }),
@@ -26,7 +26,7 @@ const registerSchema = Joi.object({
 });
 
 const loginSchema = Joi.object({
-  email: Joi.string().trim().lowercase().email().required().messages({
+  email: Joi.string().trim().lowercase().email({ tlds: { allow: false } }).required().messages({
     'string.empty': 'Email is required',
     'string.email': 'Please enter a valid email address',
   }),
