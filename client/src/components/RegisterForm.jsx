@@ -151,7 +151,7 @@ export default function RegisterForm({ onSuccess }) {
             name="occupation"
             type="text"
             className="form-input"
-            placeholder="e.g., CS Student"
+            placeholder="e.g., IT Student"
             value={formData.occupation}
             onChange={handleChange}
           />
