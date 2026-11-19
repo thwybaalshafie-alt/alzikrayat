@@ -1,111 +1,73 @@
-# Project Report: Alzikrayat — MERN Edition
+# Project Report: Alzikrayat (MERN Edition)
 
-**Course:** Advanced Web Technologies — MERN Stack Module (Lectures 10–15)  
-**Institution:** Sudan University of Science and Technology — Computer Science and Information Technology  
-**Project:** Course Project 3 (Alzikrayat — MERN Edition) + Bonus Project 4 (AI Integration via Z.AI `GLM-4.6V-Flash`)  
-**Author:** Thwyba Alshafie  
-**Git Branch:** `mern-edition` (Project 1 PHP MVC preserved on `master`)
+**Course:** Advanced Web Technologies (MERN Stack Module)  
+**Institution:** Sudan University of Science and Technology, College of Computer Science and Information Technology  
+**Student:** Thwyba Alshafie  
+**Branch:** `mern-edition` (Project 1 PHP version remains on `master`)
 
----
+## 1. Overview
 
-## 1. Executive Summary
+Alzikrayat (MERN Edition) is a full-stack photo sharing web application built using MongoDB, Express.js, React, and Node.js. All backend routes, controllers, middleware, Mongoose schemas, and React components were written directly without meta-frameworks like Next.js or NestJS. The project keeps the three-tier separation between the React UI, Express REST API, and MongoDB database, and also adds AI photo tagging and comment summarization using Z.AI (`glm-4.6v-flash`).
 
-Alzikrayat — MERN Edition is a complete full-stack modernization of the Project 1 PHP MVC photo-sharing application onto the **MERN Stack** (**MongoDB, Express.js, React.js, Node.js**). Every route, controller, middleware, Mongoose model, and React component was hand-written without meta-frameworks (no Next.js, NestJS, or pre-built admin templates), adhering strictly to the 3-Tier Architecture and REST API design guidelines covered in Lectures 10–15.
+## 2. Three-Tier Architecture
 
-In addition to fulfilling 100% of Course Project 3's core specifications, this build incorporates **Bonus Project 4 — AI Integration** using **Z.AI's `GLM-4.6V-Flash`** multimodal vision-language model to deliver automatic image tagging, visual caption generation, pre-upload metadata suggestion, and community comment summarization.
-
----
-
-## 2. 3-Tier System Architecture
-
-| Physical Tier | Technology | Implementation Location | Responsibilities |
+| Tier | Stack | Folder | Role |
 | :--- | :--- | :--- | :--- |
-| **Presentation Tier (Client UI)** | React 18 + Vite + React Router v6 + Axios | `/client/src/` | Responsive SPA, reusable functional components, client-side routing (`useParams`), local & context state, async API consumption with loading/error states. |
-| **Application / Business Tier (Server API)** | Node.js + Express.js + Joi + Multer + bcryptjs | `/server/routes/`, `/server/controllers/`, `/server/middleware/`, `/server/services/` | RESTful HTTP endpoints, server-side Joi input validation, password hashing, disk image storage, ownership authorization, centralized error handling, Z.AI API orchestration. |
-| **Data Tier (Persistent Database)** | MongoDB + Mongoose ODM | `/server/models/` | Schema enforcement, unique indexing, email validation, relational document references (`ObjectId` + `ref`), and query population. |
+| Presentation Tier | React 18, Vite, React Router, Axios | `/client/src/` | User interface, client routing, state management, and API calls |
+| Application Tier | Node.js, Express.js, Joi, Multer, bcryptjs | `/server/` | REST API endpoints, validation, file uploads, ownership checks, and AI service |
+| Data Tier | MongoDB, Mongoose | `/server/models/` | Data models, schema validation, unique constraints, and ObjectId references |
 
----
+## 3. Database Schemas
 
-## 3. Database Schema Design (Mongoose)
+The database uses three Mongoose models in `server/models/`:
 
-All three required collections are implemented in `/server/models/` using PascalCase filenames and strict Mongoose validation rules:
+1. **User (`User.js`):** Stores `firstName`, `lastName`, unique validated `email`, bcrypt-hashed `password`, and optional `location`, `occupation`, and `description`. A `toJSON` transform removes `password` and `__v` before sending user objects back in API responses.
+2. **Photo (`Photo.js`):** Stores `userId` (ObjectId referencing `User`), `fileName`, `title`, optional `description`, `dateTime` (default `Date.now`), and optional `aiTags` and `aiCaption`. Indexes on `dateTime` and `userId` keep gallery sorting and lookups fast.
+3. **Comment (`Comment.js`):** Stores `photoId` (ref `Photo`), `userId` (ref `User`), `comment`, and `dateTime` (default `Date.now`), with a compound index on `(photoId, dateTime)`.
 
-1. **`User` (`server/models/User.js`)**
-   - Required fields: `firstName`, `lastName`, `email` (`unique: true`, lowercase, regex-validated), `password` (bcrypt hash).
-   - Optional profile fields: `location`, `description`, `occupation`.
-   - Security safeguard: A schema-level `toJSON` transform automatically deletes `password` and `__v` before serialization so password hashes are never exposed in API responses.
-2. **`Photo` (`server/models/Photo.js`)**
-   - Required fields: `userId` (`ObjectId`, `ref: 'User'`), `fileName`, `title`.
-   - Optional / default fields: `description`, `dateTime` (`default: Date.now`), plus Bonus Project 4 fields `aiTags` (`[String]`) and `aiCaption` (`String`).
-   - Indexes on `{ dateTime: -1 }` and `{ userId: 1 }` optimize gallery sorting and ownership queries.
-3. **`Comment` (`server/models/Comment.js`)**
-   - Required fields: `photoId` (`ObjectId`, `ref: 'Photo'`), `userId` (`ObjectId`, `ref: 'User'`), `comment`.
-   - Default field: `dateTime` (`default: Date.now`).
-   - Compound index on `{ photoId: 1, dateTime: 1 }` for fast chronological comment retrieval.
+## 4. Backend Implementation (`/server`)
 
----
+- **Server Setup (`server.js`):** Configures CORS, JSON/form body parsing, static serving for `/uploads`, a `/api/health` route, modular routers, a 404 handler, and centralized error handling.
+- **Middleware (`middleware/`):**
+  - `validation.js` validates request bodies with Joi and removes any uploaded file from disk if multipart validation fails. It also checks MongoDB `ObjectId` parameters before queries run.
+  - `upload.js` uses Multer disk storage to save JPEG, PNG, GIF, and WebP images (up to 8 MB) in `server/uploads/` with unique filenames.
+  - `errorHandler.js` maps Multer, Mongoose validation/cast, and duplicate key (`11000`) errors to standard HTTP status codes (`400`, `409`, `500`).
+- **Auth & CRUD Controllers (`controllers/`):**
+  - `authController.js` hashes passwords with `bcryptjs` (10 rounds) on register and compares hashes on login.
+  - `photoController.js` lists photos with search/tag filtering and comment counts, fetches single photo details with comments, saves uploaded photos, and verifies ownership (`photo.userId === requestingUserId`) on `DELETE /api/photos/:id` before deleting comments, the photo document, and the stored image file.
+  - `commentController.js` validates and saves comments and returns the populated author so the UI updates immediately.
+- **Seeder (`seed.js`):** Copies 4 sample images from `server/seed-assets/` into `server/uploads/` and creates 2 demo accounts, 4 photos, and 6 comments.
 
-## 4. Backend Implementation Summary (`/server`)
+## 5. Frontend Implementation (`/client`)
 
-- **Entry Point (`server/server.js`):** Configures CORS, JSON/URL-encoded body parsing, static file serving for `/uploads`, health endpoint (`/api/health`), modular routers, 404 handler, and centralized error handler.
-- **Validation & Security (`server/middleware/validation.js`, `errorHandler.js`):**
-  - Joi schemas validate registration, login, photo creation, and comment creation before controllers execute.
-  - `validateObjectId()` rejects malformed MongoDB IDs early with `400 Bad Request`.
-  - If validation fails on a multipart upload, any uploaded file is immediately unlinked from disk to avoid orphaned files.
-  - Passwords are hashed using `bcryptjs` (`10` salt rounds) and verified via `bcrypt.compare()`.
-- **File Storage (`server/middleware/upload.js`):** Multer disk storage validates image MIME types (`JPEG`, `PNG`, `GIF`, `WebP`), enforces an 8 MB limit, and generates unique filenames in `server/uploads/`.
-- **Ownership-Protected Deletion (`server/controllers/photoController.js`):** `DELETE /api/photos/:id` checks authentication (`401`) and verifies `photo.userId.toString() === requestingUserId` (`403 Forbidden` if mismatched) before deleting comments, the photo document, and the physical image file.
-- **Demo Seeder (`server/seed.js`):** Copies the 4 sample artworks from Project 1 (`server/seed-assets/`) into `server/uploads/` and creates 2 bcrypt-hashed demo users, 4 photos, and 6 comments.
+- **Routing & Auth State:** `App.jsx` configures React Router routes (`/`, `/gallery`, `/photos`, `/photos/:id`, `/upload`, `/login`, `/register`). `AuthContext.jsx` stores the active user in React state and syncs it with `localStorage`.
+- **Navbar (`Navbar.jsx`):** Uses a floating frosted-glass bar that shows `Hi <firstName>` and a `Logout` button when signed in, or `Please Login` linking to `LoginRegister` when signed out.
+- **Pages & Components:**
+  - `Home.jsx` displays the hero banner, platform counts, recent photos, and about section.
+  - `Gallery.jsx` loads photos via `useEffect` + Axios and lets users toggle between 3-column grid, 4-column grid, and list view, as well as search and filter by AI tags.
+  - `PhotoDetail.jsx` reads `:id` with `useParams()`, displays the full image, metadata, Z.AI analysis panel, owner-only delete confirmation, comment summary box, and live comment form.
+  - `UploadPhoto.jsx` and `UploadForm.jsx` handle authenticated image uploads with instant preview and optional AI metadata suggestions.
+  - `LoginRegister.jsx` switches between `LoginForm` and `RegisterForm`.
+- **Responsive Design (`styles/index.css`):** Uses a monochrome black, grey, and white layout with media queries at `1024px` and `720px` so pages adapt across desktop, tablet, and mobile screens.
 
----
+## 6. AI Integration (Z.AI `glm-4.6v-flash`)
 
-## 5. Frontend Implementation Summary (`/client`)
+`server/services/aiService.js`, `aiController.js`, and `aiRoutes.js` connect to Z.AI's OpenAI-compatible `/chat/completions` endpoint using `glm-4.6v-flash`:
 
-- **Routing & State (`App.jsx`, `main.jsx`, `AuthContext.jsx`):**
-  - Configured `BrowserRouter` with routes for `/`, `/gallery`, `/photos`, `/photos/:id`, `/upload`, `/login`, and `/register`.
-  - `AuthContext` manages the logged-in user object in React state and syncs it to `localStorage`.
-- **Navbar Toolbar (`Navbar.jsx`):**
-  - Displays **`Hi <firstName>`** and a **Logout** button when logged in.
-  - Displays **`Please Login`** routing to `/login` (`LoginRegister`) when logged out.
-  - Includes a responsive mobile hamburger toggle for small screens.
-- **Pages & Reusable Components:**
-  - `Home.jsx`: Hero banner, live stats fetched from `/api/photos/stats`, recent photo grid, and platform overview.
-  - `Gallery.jsx`: Fetches photos via `useEffect` + Axios, supports **3-Column Grid**, **4-Column Compact Grid**, and **List View** styles via `PhotoCard` props, plus real-time search and AI tag filter chips.
-  - `PhotoDetail.jsx`: Reads `:id` via React Router `useParams()`, renders the full-size image, owner details, Z.AI Vision analysis panel, owner-only two-step Delete Photo confirmation, `AiSummaryBox`, `CommentList`, and `CommentForm` (instant state update without page reload).
-  - `UploadPhoto.jsx` & `UploadForm.jsx`: Login-gated multipart upload with live image preview, Z.AI metadata suggestion button, and optional auto-analysis checkbox.
-  - `LoginRegister.jsx`: Tabbed authentication screen combining `LoginForm` and `RegisterForm` with full profile fields and clear inline error feedback.
-- **Responsive Design (`styles/index.css`):** Custom responsive CSS using fluid grids and media queries at `1024px` (tablet) and `720px` (mobile) for clean rendering on any viewport.
+- **Photo Auto-Tagging & Captioning (`POST /api/ai/photos/:id/analyze`):** Reads the local image file as base64, requests tags and a short visual caption, and saves them to the photo record.
+- **Upload Metadata Suggestion (`POST /api/ai/suggest-metadata`):** Inspects an image preview in memory and suggests a title, description, and tags in the upload form.
+- **Comment Summarization (`POST /api/ai/photos/:id/summarize-comments`):** Summarizes all comments on a photo into a short overview.
+- Includes retry handling for temporary `429`/`503` responses from the external API.
 
----
+## 7. Testing & Verification
 
-## 6. Bonus Project 4: Z.AI (`GLM-4.6V-Flash`) Integration
+The application was tested end-to-end across backend routes, MongoDB persistence, and the React UI:
 
-Implemented in `server/services/aiService.js`, `server/controllers/aiController.js`, and `server/routes/aiRoutes.js`, communicating with Z.AI's OpenAI-compatible Chat Completions endpoint (`https://api.z.ai/api/paas/v4/chat/completions`) using model `glm-4.6v-flash`:
-
-1. **Multimodal Photo Auto-Tagging & Captioning (`POST /api/ai/photos/:id/analyze`):** Encodes the stored image as a base64 Data URI, prompts `glm-4.6v-flash` for structured JSON (`tags`, `caption`), and saves them to MongoDB.
-2. **Pre-Upload AI Metadata Suggester (`POST /api/ai/suggest-metadata`):** Inspects an in-memory uploaded image preview and suggests a title, description, and tags directly inside the upload form.
-3. **AI Comment Summarization (`POST /api/ai/photos/:id/summarize-comments`):** Aggregates all comments on a photo and produces a concise 2–3 sentence community takeaway.
-4. **Resilience:** Includes exponential backoff retry (up to 4 attempts) for transient `429`/`503` rate-limit responses and disables verbose reasoning tokens (`thinking: { type: 'disabled' }`) for fast, structured responses.
-
----
-
-## 7. Verification & Testing Results
-
-| Verification Check | Method | Result |
+| Area | What Was Tested | Result |
 | :--- | :--- | :--- |
-| React + Vite Production Build (`npm run build`) | Vite bundler | **PASS** (107 modules, 0 errors, 758ms) |
-| Database Seeding (`npm run seed`) | Mongoose + bcrypt | **PASS** (2 users, 4 photos, 6 comments seeded) |
-| `GET /api/health` | Automated E2E HTTP suite | **PASS** (`200 OK`, DB connected) |
-| `POST /api/auth/register` Joi validation & bcrypt hashing | Automated E2E HTTP suite | **PASS** (`400` invalid, `201` created, bcrypt `$2a$` stored, password stripped from JSON, `409` duplicate) |
-| `POST /api/auth/login` credential verification | Automated E2E HTTP suite | **PASS** (`401` wrong password, `200` valid login) |
-| `GET /api/photos`, `/api/photos/stats`, `/api/photos/:id` | Automated E2E HTTP suite | **PASS** (`200`, `400` invalid ObjectId, `404` missing) |
-| `POST /api/photos` multipart upload & disk persistence | Automated E2E HTTP suite | **PASS** (`201`, file verified in `server/uploads/`) |
-| `POST /api/photos/:id/comments` | Automated E2E HTTP suite | **PASS** (`201`, populated author returned) |
-| `DELETE /api/photos/:id` ownership & file cleanup | Automated E2E HTTP suite | **PASS** (`401` unauth, `403` non-owner, `200` owner + file removed) |
-| `.env` exclusion from Git (`git status` / `.gitignore`) | Git inspection | **PASS** (`server/.env` never staged or committed) |
-
----
-
-## 8. Git Commit History & Deployment Notes
-
-All work is cleanly organized on branch `mern-edition` with structured commits separating branch setup, backend core, backend REST API & Z.AI integration, frontend foundation, frontend views/components, and documentation.
+| Frontend Build | `npm run build` in `/client` | Passed with no errors |
+| Database Seeding | `npm run seed` in `/server` | Seeded 2 users, 4 photos, and 6 comments |
+| Authentication | Register validation (`400`), duplicate email (`409`), bcrypt hash storage, password omitted in JSON, login (`401` / `200`) | Passed |
+| Photos CRUD | Gallery list & stats (`200`), invalid/missing ID (`400`/`404`), multipart upload (`201`), owner-only delete (`401`/`403`/`200` + disk file removal) | Passed |
+| Comments | Adding comments (`201`) and immediate UI update on `/photos/:id` without reload | Passed |
+| Security & Git | `.env` ignored by `.gitignore` and excluded from commits | Passed |
