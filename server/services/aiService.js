@@ -23,9 +23,7 @@ function getAiConfig() {
   return { apiKey, baseUrl, model };
 }
 
-/**
- * Sends a chat completion request to Z.AI's OpenAI-compatible API with automatic retry on transient 429/503 errors.
- */
+// Call Z.AI chat completions with retry on temporary 429/503 responses
 async function callZaiChat(messages, maxTokens = 1024) {
   const { apiKey, baseUrl, model } = getAiConfig();
   const maxAttempts = 4;
@@ -81,9 +79,6 @@ async function callZaiChat(messages, maxTokens = 1024) {
   throw err;
 }
 
-/**
- * Safely extracts JSON from a model response (handles markdown code fences).
- */
 function parseJsonResponse(rawText) {
   const cleaned = rawText
     .replace(/^```(?:json)?\s*/i, '')
@@ -101,9 +96,6 @@ function parseJsonResponse(rawText) {
   }
 }
 
-/**
- * Analyzes an image file on disk using Z.AI GLM-4.6V-Flash to produce tags and a caption.
- */
 async function analyzePhotoFile(filePath, title = '', description = '') {
   if (!fs.existsSync(filePath)) {
     const err = new Error('Image file not found on disk');
@@ -159,9 +151,6 @@ async function analyzePhotoFile(filePath, title = '', description = '') {
   };
 }
 
-/**
- * Suggests a title, description, and tags for a photo buffer before uploading.
- */
 async function suggestPhotoMetadata(buffer, mimeType = 'image/jpeg') {
   const dataUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
 
@@ -202,9 +191,6 @@ async function suggestPhotoMetadata(buffer, mimeType = 'image/jpeg') {
   };
 }
 
-/**
- * Summarizes a photo's comments using Z.AI GLM-4.6V-Flash.
- */
 async function summarizeComments(photoTitle, comments) {
   const formattedComments = comments
     .map((c, idx) => {

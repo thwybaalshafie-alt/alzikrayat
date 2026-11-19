@@ -139,7 +139,6 @@ export default function PhotoDetail() {
       <ErrorAlert message={error} onDismiss={() => setError('')} />
 
       <div className="detail-layout">
-        {/* Left: Full-Size Photo, Metadata, and Z.AI Vision Analysis */}
         <article className="detail-photo-card">
           <div className="detail-image-wrap">
             <img src={getPhotoImageUrl(photo.fileName)} alt={photo.title} />
@@ -205,7 +204,6 @@ export default function PhotoDetail() {
               </div>
             </div>
 
-            {/* Bonus Project 4: Z.AI Vision Auto-Tagging & Visual Insight */}
             <div className="ai-box">
               <div className="ai-box-header">
                 <span className="ai-badge">✨ Z.AI Vision Insight (GLM-4.6V-Flash)</span>
@@ -247,7 +245,6 @@ export default function PhotoDetail() {
           </div>
         </article>
 
-        {/* Right: Comments & Z.AI Comment Summarizer */}
         <aside className="detail-panel" aria-label="Photo Comments">
           <h2 style={{ margin: '0 0 0.3rem', fontSize: '1.3rem', fontWeight: 800 }}>
             Comments ({comments.length})

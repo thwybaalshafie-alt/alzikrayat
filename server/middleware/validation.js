@@ -58,10 +58,7 @@ const createCommentSchema = Joi.object({
   }),
 });
 
-/**
- * Reusable Joi validation middleware factory.
- * Cleans up any uploaded file if body validation fails on multipart routes.
- */
+// Validate request body with Joi and clean up uploaded file on error
 function validateBody(schema) {
   return (req, res, next) => {
     const { error, value } = schema.validate(req.body, {
@@ -87,9 +84,7 @@ function validateBody(schema) {
   };
 }
 
-/**
- * Validates that a route parameter (default: :id) is a valid MongoDB ObjectId.
- */
+// Ensure route param is a valid MongoDB ObjectId
 function validateObjectId(paramName = 'id') {
   return (req, res, next) => {
     const id = req.params[paramName];

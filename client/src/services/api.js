@@ -5,9 +5,6 @@ const api = axios.create({
   timeout: 45000,
 });
 
-/**
- * Extracts a clean, user-friendly error message from an Axios error object.
- */
 export function getErrorMessage(err, fallback = 'Something went wrong. Please try again.') {
   return (
     err?.response?.data?.message ||
@@ -17,7 +14,7 @@ export function getErrorMessage(err, fallback = 'Something went wrong. Please tr
   );
 }
 
-// Auth Endpoints
+// Auth
 export async function registerRequest(payload) {
   const { data } = await api.post('/auth/register', payload);
   return data;
@@ -28,7 +25,7 @@ export async function loginRequest(payload) {
   return data;
 }
 
-// Photo Endpoints
+// Photos
 export async function fetchPhotos(params = {}) {
   const { data } = await api.get('/photos', { params });
   return data;
@@ -59,13 +56,13 @@ export async function deletePhotoRequest(photoId, userId) {
   return data;
 }
 
-// Comment Endpoints
+// Comments
 export async function addCommentRequest(photoId, { userId, comment }) {
   const { data } = await api.post(`/photos/${photoId}/comments`, { userId, comment });
   return data;
 }
 
-// Bonus Project 4: Z.AI GLM-4.6V-Flash AI Endpoints
+// AI (Z.AI)
 export async function analyzePhotoWithAi(photoId) {
   const { data } = await api.post(`/ai/photos/${photoId}/analyze`);
   return data;

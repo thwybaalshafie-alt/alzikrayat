@@ -6,11 +6,7 @@ const User = require('../models/User');
 const { uploadsDir } = require('../middleware/upload');
 const { analyzePhotoFile } = require('../services/aiService');
 
-/**
- * GET /api/photos
- * Returns all photos sorted newest-first, with populated owner details and comment counts.
- * Supports optional ?search= and ?tag= query parameters.
- */
+// GET /api/photos
 async function getAll(req, res, next) {
   try {
     const { search, tag } = req.query;
@@ -34,7 +30,6 @@ async function getAll(req, res, next) {
       .sort({ dateTime: -1 })
       .lean();
 
-    // Attach comment count per photo in a single aggregation query
     const photoIds = photos.map((p) => p._id);
     const counts = await Comment.aggregate([
       { $match: { photoId: { $in: photoIds } } },
@@ -53,10 +48,7 @@ async function getAll(req, res, next) {
   }
 }
 
-/**
- * GET /api/photos/stats
- * Returns summary platform statistics for the Home landing page.
- */
+// GET /api/photos/stats
 async function getStats(_req, res, next) {
   try {
     const [totalPhotos, totalUsers, totalComments] = await Promise.all([
@@ -75,10 +67,7 @@ async function getStats(_req, res, next) {
   }
 }
 
-/**
- * GET /api/photos/:id
- * Returns a single photo's full metadata, populated owner, and populated comments.
- */
+// GET /api/photos/:id
 async function getOne(req, res, next) {
   try {
     const { id } = req.params;
@@ -108,11 +97,7 @@ async function getOne(req, res, next) {
   }
 }
 
-/**
- * POST /api/photos
- * Saves an uploaded photo file to disk and persists metadata in MongoDB.
- * Optionally auto-analyzes the image using Z.AI GLM-4.6V-Flash when autoAnalyze is enabled.
- */
+// POST /api/photos
 async function create(req, res, next) {
   try {
     if (!req.file) {
@@ -124,7 +109,6 @@ async function create(req, res, next) {
 
     const { userId, title, description, autoAnalyze } = req.body;
 
-    // Verify that the submitting user exists
     const user = await User.findById(userId);
     if (!user) {
       fs.unlink(req.file.path, () => {});
@@ -144,7 +128,6 @@ async function create(req, res, next) {
         aiTags = analysis.tags;
         aiCaption = analysis.caption;
       } catch (aiErr) {
-        // Non-fatal: upload still succeeds even if external AI service times out
         console.warn('[AI Auto-Analyze Skipped]', aiErr.message);
       }
     }
@@ -174,10 +157,7 @@ async function create(req, res, next) {
   }
 }
 
-/**
- * DELETE /api/photos/:id
- * Verifies server-side ownership before deleting the photo document, its comments, and the file on disk.
- */
+// DELETE /api/photos/:id
 async function remove(req, res, next) {
   try {
     const { id } = req.params;
@@ -198,7 +178,7 @@ async function remove(req, res, next) {
       });
     }
 
-    // Strictly verify ownership server-side
+    // Verify photo ownership before deleting
     if (photo.userId.toString() !== String(requestingUserId)) {
       return res.status(403).json({
         error: 'Forbidden',
@@ -206,11 +186,9 @@ async function remove(req, res, next) {
       });
     }
 
-    // Delete associated comments and photo record
     await Comment.deleteMany({ photoId: photo._id });
     await Photo.deleteOne({ _id: photo._id });
 
-    // Remove the physical image file from server/uploads/
     const filePath = path.join(uploadsDir, photo.fileName);
     if (fs.existsSync(filePath)) {
       fs.unlink(filePath, (unlinkErr) => {

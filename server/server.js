@@ -24,10 +24,9 @@ app.use(
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Static serving of uploaded photo files
+// Static uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Health check endpoint
 app.get('/api/health', (_req, res) => {
   res.status(200).json({
     status: 'ok',
@@ -38,13 +37,13 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-// REST API Routes
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/photos', photoRoutes);
 app.use('/api/photos', commentRoutes);
 app.use('/api/ai', aiRoutes);
 
-// 404 and Centralized Error Handling Middleware
+// Error handling
 app.use(notFoundHandler);
 app.use(errorHandler);
 

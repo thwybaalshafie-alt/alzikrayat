@@ -29,7 +29,6 @@ const photoSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    // Bonus Project 4: AI-generated tags and visual caption via Z.AI GLM-4.6V-Flash
     aiTags: {
       type: [String],
       default: [],

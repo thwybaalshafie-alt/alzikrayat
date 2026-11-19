@@ -41,7 +41,6 @@ export default function Gallery() {
     };
   }, []);
 
-  // Collect all unique AI tags across loaded photos
   const allTags = useMemo(() => {
     const tagSet = new Set();
     photos.forEach((p) => {
@@ -96,7 +95,6 @@ export default function Gallery() {
         )}
       </div>
 
-      {/* Search & Display Style Switcher */}
       <div className="gallery-toolbar">
         <div className="search-box">
           <input
@@ -146,7 +144,6 @@ export default function Gallery() {
         </div>
       </div>
 
-      {/* AI Tag Filter Pills */}
       {allTags.length > 0 && (
         <div className="tag-filter-bar" aria-label="Filter by AI tags">
           <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>

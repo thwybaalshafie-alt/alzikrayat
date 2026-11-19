@@ -44,7 +44,6 @@ export default function Home() {
 
   return (
     <div>
-      {/* Hero Banner */}
       <section className="hero-banner">
         <span className="hero-badge">Alzikrayat · MERN Edition + Z.AI Vision</span>
         <h1 className="hero-title">Share Your Memories</h1>
@@ -69,7 +68,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Live Community Stats */}
       <section className="stats-grid" aria-label="Platform Statistics">
         <div className="stat-card">
           <div className="stat-value">{stats.totalPhotos}</div>
@@ -85,7 +83,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Recent Photos Showcase */}
       <section>
         <div className="section-header">
           <div>
@@ -118,7 +115,6 @@ export default function Home() {
         )}
       </section>
 
-      {/* About Section */}
       <section className="about-section" id="about">
         <h2 className="section-title">Keep the moments that matter.</h2>
         <p className="section-subtitle" style={{ maxWidth: '680px', margin: '0.6rem auto 0' }}>

@@ -8,11 +8,7 @@ const {
   summarizeComments,
 } = require('../services/aiService');
 
-/**
- * POST /api/ai/photos/:id/analyze
- * Uses Z.AI GLM-4.6V-Flash to auto-tag and generate a visual caption for an uploaded photo,
- * persisting the result on the Photo document in MongoDB.
- */
+// POST /api/ai/photos/:id/analyze
 async function analyzePhoto(req, res, next) {
   try {
     const { id } = req.params;
@@ -43,10 +39,7 @@ async function analyzePhoto(req, res, next) {
   }
 }
 
-/**
- * POST /api/ai/photos/:id/summarize-comments
- * Summarizes all comments on a photo using Z.AI GLM-4.6V-Flash.
- */
+// POST /api/ai/photos/:id/summarize-comments
 async function summarizePhotoComments(req, res, next) {
   try {
     const { id } = req.params;
@@ -84,10 +77,7 @@ async function summarizePhotoComments(req, res, next) {
   }
 }
 
-/**
- * POST /api/ai/suggest-metadata
- * Accepts an in-memory image preview and returns AI-suggested title, description, and tags.
- */
+// POST /api/ai/suggest-metadata
 async function suggestMetadata(req, res, next) {
   try {
     if (!req.file || !req.file.buffer) {

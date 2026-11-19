@@ -2,10 +2,7 @@ const Comment = require('../models/Comment');
 const Photo = require('../models/Photo');
 const User = require('../models/User');
 
-/**
- * GET /api/photos/:id/comments
- * Retrieves all comments for a given photo sorted chronologically.
- */
+// GET /api/photos/:id/comments
 async function getByPhoto(req, res, next) {
   try {
     const { id } = req.params;
@@ -29,10 +26,7 @@ async function getByPhoto(req, res, next) {
   }
 }
 
-/**
- * POST /api/photos/:id/comments
- * Adds a new comment to a photo from a logged-in user and returns the populated comment.
- */
+// POST /api/photos/:id/comments
 async function create(req, res, next) {
   try {
     const { id } = req.params;

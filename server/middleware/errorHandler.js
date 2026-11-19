@@ -8,7 +8,6 @@ function notFoundHandler(req, res) {
 }
 
 function errorHandler(err, _req, res, _next) {
-  // Handle Multer upload errors cleanly
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
@@ -22,7 +21,6 @@ function errorHandler(err, _req, res, _next) {
     });
   }
 
-  // Custom file filter error
   if (err.code === 'INVALID_FILE_TYPE') {
     return res.status(400).json({
       error: 'Invalid File Type',
@@ -30,7 +28,6 @@ function errorHandler(err, _req, res, _next) {
     });
   }
 
-  // Mongoose ValidationError
   if (err.name === 'ValidationError') {
     const details = Object.values(err.errors).map((e) => e.message);
     return res.status(400).json({
@@ -40,7 +37,6 @@ function errorHandler(err, _req, res, _next) {
     });
   }
 
-  // Mongoose CastError (invalid ObjectId)
   if (err.name === 'CastError') {
     return res.status(400).json({
       error: 'Invalid Identifier',
@@ -48,7 +44,6 @@ function errorHandler(err, _req, res, _next) {
     });
   }
 
-  // MongoDB Duplicate Key Error (e.g., duplicate email)
   if (err.code === 11000) {
     const field = Object.keys(err.keyPattern || {})[0] || 'field';
     return res.status(409).json({

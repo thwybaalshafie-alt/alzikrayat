@@ -3,10 +3,7 @@ const User = require('../models/User');
 
 const SALT_ROUNDS = 10;
 
-/**
- * POST /api/auth/register
- * Validates input (via Joi middleware), hashes password with bcrypt, and creates a new User.
- */
+// POST /api/auth/register
 async function register(req, res, next) {
   try {
     const { firstName, lastName, email, password, location, description, occupation } = req.body;
@@ -31,7 +28,6 @@ async function register(req, res, next) {
       occupation: occupation || '',
     });
 
-    // User.toJSON automatically excludes the password hash
     return res.status(201).json({
       message: 'Registration successful',
       user: newUser.toJSON(),
@@ -41,10 +37,7 @@ async function register(req, res, next) {
   }
 }
 
-/**
- * POST /api/auth/login
- * Verifies email and bcrypt password hash, returning the user's public profile on success.
- */
+// POST /api/auth/login
 async function login(req, res, next) {
   try {
     const { email, password } = req.body;
