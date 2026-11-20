@@ -22,7 +22,11 @@ async function analyzePhoto(req, res, next) {
     }
 
     const filePath = path.join(uploadsDir, photo.fileName);
-    const { tags, caption } = await analyzePhotoFile(filePath, photo.title, photo.description);
+    const { tags, caption, modelUsed } = await analyzePhotoFile(
+      filePath,
+      photo.title,
+      photo.description
+    );
 
     photo.aiTags = tags;
     photo.aiCaption = caption;
@@ -30,7 +34,7 @@ async function analyzePhoto(req, res, next) {
 
     return res.status(200).json({
       message: 'AI photo analysis completed',
-      model: process.env.ZAI_MODEL || 'glm-4.6v-flash',
+      model: modelUsed || process.env.ZAI_MODEL || 'glm-4.6v-flash',
       aiTags: photo.aiTags,
       aiCaption: photo.aiCaption,
     });
@@ -64,11 +68,11 @@ async function summarizePhotoComments(req, res, next) {
       });
     }
 
-    const summary = await summarizeComments(photo.title, comments);
+    const { summary, modelUsed } = await summarizeComments(photo.title, comments);
 
     return res.status(200).json({
       message: 'Comments summarized successfully',
-      model: process.env.ZAI_MODEL || 'glm-4.6v-flash',
+      model: modelUsed || process.env.ZAI_TEXT_MODEL || 'glm-4.5-flash',
       commentCount: comments.length,
       summary,
     });
@@ -87,12 +91,18 @@ async function suggestMetadata(req, res, next) {
       });
     }
 
-    const suggestion = await suggestPhotoMetadata(req.file.buffer, req.file.mimetype);
+    const { title, description, tags, modelUsed } = await suggestPhotoMetadata(
+      req.file.buffer,
+      req.file.mimetype,
+      req.file.originalname
+    );
 
     return res.status(200).json({
       message: 'Metadata suggestion generated',
-      model: process.env.ZAI_MODEL || 'glm-4.6v-flash',
-      ...suggestion,
+      model: modelUsed || process.env.ZAI_MODEL || 'glm-4.6v-flash',
+      title,
+      description,
+      tags,
     });
   } catch (err) {
     return next(err);
