@@ -57,7 +57,7 @@ async function seedDatabase() {
       email: 'thwyba@alzikrayat.demo',
       password: hashedPassword,
       location: 'Khartoum, Sudan',
-      occupation: 'Computer Science Student',
+      occupation: 'Information Technology Student',
       description: 'Capturing favorite illustrations, digital art, and everyday memories on Alzikrayat.',
     },
     {
