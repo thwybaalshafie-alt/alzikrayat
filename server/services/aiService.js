@@ -9,79 +9,87 @@ const MIME_BY_EXT = {
   '.webp': 'image/webp',
 };
 
-function getAiConfig() {
-  const apiKey = process.env.ZAI_API_KEY;
-  const baseUrl = (process.env.ZAI_BASE_URL || 'https://api.z.ai/api/paas/v4').replace(/\/+$/, '');
-  const visionModel = process.env.ZAI_MODEL || 'glm-4.6v-flash';
-  const textModel = process.env.ZAI_TEXT_MODEL || 'glm-4.5-flash';
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+function getGeminiConfig() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const primaryModel = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
+  const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash-lite';
 
   if (!apiKey) {
-    const err = new Error('Z.AI API key is not configured in server/.env');
+    const err = new Error('GEMINI_API_KEY is not configured in server/.env');
     err.statusCode = 503;
     throw err;
   }
 
-  return { apiKey, baseUrl, visionModel, textModel };
+  return { apiKey, primaryModel, fallbackModel };
 }
 
-// Call Z.AI chat completions with short retry on temporary 429/503 responses
-async function callZaiChat(messages, { model, maxTokens = 1024, maxAttempts = 2 } = {}) {
-  const { apiKey, baseUrl, textModel } = getAiConfig();
-  const targetModel = model || textModel;
+// Call Google AI Studio Gemini API with per-model timeout and automatic fallback
+async function callGemini(parts, { jsonMode = false, temperature = 0.4 } = {}) {
+  const { apiKey, primaryModel, fallbackModel } = getGeminiConfig();
+  const modelsToTry = primaryModel === fallbackModel
+    ? [primaryModel]
+    : [primaryModel, fallbackModel];
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+  let lastError = null;
+
+  for (const model of modelsToTry) {
+    const url = `${GEMINI_BASE_URL}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const body = {
+      contents: [{ role: 'user', parts }],
+      generationConfig: {
+        temperature,
+        ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
       },
-      body: JSON.stringify({
-        model: targetModel,
-        messages,
-        temperature: 0.4,
-        max_tokens: maxTokens,
-        thinking: { type: 'disabled' },
-        stream: false,
-      }),
-    });
+    };
 
-    if (response.ok) {
-      const data = await response.json();
-      const message = data?.choices?.[0]?.message;
-      const content = message?.content || message?.reasoning_content;
-      if (!content) {
-        const err = new Error('Z.AI API returned an empty response');
-        err.statusCode = 502;
-        throw err;
-      }
-      return {
-        text: typeof content === 'string' ? content.trim() : JSON.stringify(content),
-        modelUsed: data?.model || targetModel,
-      };
-    }
-
-    const errorBody = await response.text().catch(() => '');
-    const isTransient = response.status === 429 || response.status === 503;
-
-    if (isTransient && attempt < maxAttempts) {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        signal: AbortSignal.timeout(20000),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    } catch (fetchErr) {
+      lastError = new Error(`Gemini AI (${model}) timed out. Please try again.`);
+      lastError.statusCode = 504;
       continue;
     }
 
-    const err = new Error(
-      isTransient
-        ? `Z.AI (${targetModel}) is temporarily overloaded.`
-        : `Z.AI API error (${response.status}): ${errorBody || response.statusText}`
+    if (response.ok) {
+      const data = await response.json();
+      const text = (data?.candidates?.[0]?.content?.parts || [])
+        .map((p) => p.text || '')
+        .join('')
+        .trim();
+
+      if (!text) {
+        lastError = new Error(`Gemini (${model}) returned an empty response`);
+        lastError.statusCode = 502;
+        continue;
+      }
+
+      return { text, modelUsed: model };
+    }
+
+    const errorBody = await response.text().catch(() => '');
+    const retryable = response.status === 429 || response.status === 503 || response.status === 404;
+
+    lastError = new Error(
+      response.status === 429 || response.status === 503
+        ? `Gemini AI (${model}) is temporarily busy. Please try again in a moment.`
+        : `Gemini API error (${response.status}): ${errorBody || response.statusText}`
     );
-    err.statusCode = isTransient ? 503 : 502;
-    err.isOverloaded = isTransient;
-    throw err;
+    lastError.statusCode = response.status === 429 || response.status === 503 ? 503 : 502;
+
+    if (!retryable) {
+      throw lastError;
+    }
   }
 
-  const err = new Error('Failed to reach Z.AI API');
-  err.statusCode = 502;
-  throw err;
+  throw lastError || new Error('Failed to reach Gemini API');
 }
 
 function parseJsonResponse(rawText) {
@@ -101,15 +109,6 @@ function parseJsonResponse(rawText) {
   }
 }
 
-function formatReadableFileName(fileName = '') {
-  const base = path.basename(fileName, path.extname(fileName));
-  return base
-    .replace(/^photo_[a-z0-9._-]+$/i, '')
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 async function analyzePhotoFile(filePath, title = '', description = '') {
   if (!fs.existsSync(filePath)) {
     const err = new Error('Image file not found on disk');
@@ -117,60 +116,30 @@ async function analyzePhotoFile(filePath, title = '', description = '') {
     throw err;
   }
 
-  const { visionModel, textModel } = getAiConfig();
   const ext = path.extname(filePath).toLowerCase();
   const mimeType = MIME_BY_EXT[ext] || 'image/jpeg';
   const base64 = fs.readFileSync(filePath).toString('base64');
-  const dataUrl = `data:${mimeType};base64,${base64}`;
 
   const promptText = [
-    'Analyze this photo for a photo-sharing gallery app named Alzikrayat.',
+    'Look carefully at this image for a photo-sharing gallery app named Alzikrayat.',
     title ? `User title: "${title}".` : '',
     description ? `User description: "${description}".` : '',
-    'Respond ONLY with valid JSON in this exact format (no markdown, no extra text):',
-    '{"tags": ["tag1", "tag2", "tag3", "tag4", "tag5"], "caption": "A concise 1-2 sentence visual description of the image."}',
-    'Keep each tag short (1-2 lowercase words, no # symbol, 4 to 6 tags total).',
+    'Return ONLY a valid JSON object with exact keys:',
+    '{"tags": ["tag1", "tag2", "tag3", "tag4", "tag5"], "caption": "An accurate 1-2 sentence visual description of what is actually shown in the image."}',
+    'Keep each tag short (1-2 lowercase words, no # symbol, 4 to 6 accurate tags based on the visual content).',
   ]
     .filter(Boolean)
     .join(' ');
 
-  let result;
-  try {
-    result = await callZaiChat(
-      [
-        {
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: dataUrl } },
-            { type: 'text', text: promptText },
-          ],
-        },
-      ],
-      { model: visionModel, maxTokens: 1024, maxAttempts: 2 }
-    );
-  } catch (err) {
-    if (!err.isOverloaded) throw err;
-    // Fallback to Z.AI text model when the free vision pool is overloaded (429/1305)
-    const fallbackPrompt = [
-      'Generate gallery tags and a refined 1-2 sentence photo caption for a photo in the Alzikrayat photo-sharing app.',
-      title ? `Title: "${title}".` : '',
-      description ? `Description: "${description}".` : '',
-      `Image file name: "${path.basename(filePath)}".`,
-      'Respond ONLY with valid JSON in this exact format (no markdown, no extra text):',
-      '{"tags": ["tag1", "tag2", "tag3", "tag4", "tag5"], "caption": "A concise 1-2 sentence description."}',
-      'Keep each tag short (1-2 lowercase words, no # symbol, 4 to 6 tags total).',
-    ]
-      .filter(Boolean)
-      .join(' ');
+  const { text, modelUsed } = await callGemini(
+    [
+      { inline_data: { mime_type: mimeType, data: base64 } },
+      { text: promptText },
+    ],
+    { jsonMode: true, temperature: 0.35 }
+  );
 
-    result = await callZaiChat([{ role: 'user', content: fallbackPrompt }], {
-      model: textModel,
-      maxTokens: 600,
-      maxAttempts: 2,
-    });
-  }
-
-  const parsed = parseJsonResponse(result.text);
+  const parsed = parseJsonResponse(text);
   if (parsed && Array.isArray(parsed.tags)) {
     const cleanTags = parsed.tags
       .map((t) => String(t).replace(/^#/, '').trim().toLowerCase())
@@ -180,61 +149,37 @@ async function analyzePhotoFile(filePath, title = '', description = '') {
     return {
       tags: cleanTags,
       caption: typeof parsed.caption === 'string' ? parsed.caption.trim() : '',
-      modelUsed: result.modelUsed,
+      modelUsed,
     };
   }
 
   return {
-    tags: ['memory', 'gallery', 'featured'],
-    caption: result.text.slice(0, 280),
-    modelUsed: result.modelUsed,
+    tags: ['photo', 'gallery'],
+    caption: text.slice(0, 280),
+    modelUsed,
   };
 }
 
-async function suggestPhotoMetadata(buffer, mimeType = 'image/jpeg', originalName = '') {
-  const { visionModel, textModel } = getAiConfig();
-  const dataUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+async function suggestPhotoMetadata(buffer, mimeType = 'image/jpeg') {
+  const base64 = buffer.toString('base64');
 
   const promptText = [
-    'Look at this image and suggest metadata for a photo-sharing web app called Alzikrayat.',
-    'Respond ONLY with valid JSON in this exact format (no markdown, no extra text):',
-    '{"title": "Short evocative title (3-6 words)", "description": "Warm 1-2 sentence caption describing the moment.", "tags": ["tag1", "tag2", "tag3", "tag4"]}',
+    'Inspect this image carefully and suggest accurate metadata for uploading it to a photo-sharing app called Alzikrayat.',
+    'Describe ONLY what is visibly present in the image.',
+    'Return ONLY a valid JSON object with exact keys:',
+    '{"title": "Short accurate title (3-6 words)", "description": "Accurate 1-2 sentence caption describing what is in the photo.", "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"]}',
+    'Keep each tag short (1-2 lowercase words, no # symbol).',
   ].join(' ');
 
-  let result;
-  try {
-    result = await callZaiChat(
-      [
-        {
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: dataUrl } },
-            { type: 'text', text: promptText },
-          ],
-        },
-      ],
-      { model: visionModel, maxTokens: 1024, maxAttempts: 2 }
-    );
-  } catch (err) {
-    if (!err.isOverloaded) throw err;
-    const readableName = formatReadableFileName(originalName);
-    const fallbackPrompt = [
-      'Suggest a creative photo title, warm 1-2 sentence caption, and 4 short lowercase tags for a new photo upload on the Alzikrayat photo-sharing app.',
-      readableName
-        ? `The user selected a file named "${readableName}" (${mimeType}).`
-        : `The user selected a ${mimeType} photo to share as a memory.`,
-      'Respond ONLY with valid JSON in this exact format (no markdown, no extra text):',
-      '{"title": "Short evocative title (3-6 words)", "description": "Warm 1-2 sentence caption.", "tags": ["tag1", "tag2", "tag3", "tag4"]}',
-    ].join(' ');
+  const { text, modelUsed } = await callGemini(
+    [
+      { inline_data: { mime_type: mimeType, data: base64 } },
+      { text: promptText },
+    ],
+    { jsonMode: true, temperature: 0.35 }
+  );
 
-    result = await callZaiChat([{ role: 'user', content: fallbackPrompt }], {
-      model: textModel,
-      maxTokens: 500,
-      maxAttempts: 2,
-    });
-  }
-
-  const parsed = parseJsonResponse(result.text);
+  const parsed = parseJsonResponse(text);
   if (parsed) {
     return {
       title: typeof parsed.title === 'string' ? parsed.title.trim().slice(0, 120) : 'Captured Memory',
@@ -242,21 +187,19 @@ async function suggestPhotoMetadata(buffer, mimeType = 'image/jpeg', originalNam
       tags: Array.isArray(parsed.tags)
         ? parsed.tags.map((t) => String(t).replace(/^#/, '').trim().toLowerCase()).filter(Boolean).slice(0, 6)
         : [],
-      modelUsed: result.modelUsed,
+      modelUsed,
     };
   }
 
   return {
     title: 'Captured Memory',
-    description: result.text.slice(0, 240),
-    tags: ['memory', 'photo'],
-    modelUsed: result.modelUsed,
+    description: text.slice(0, 240),
+    tags: ['photo', 'memory'],
+    modelUsed,
   };
 }
 
 async function summarizeComments(photoTitle, comments) {
-  const { textModel } = getAiConfig();
-
   const formattedComments = comments
     .map((c, idx) => {
       const author = c.userId
@@ -273,15 +216,14 @@ async function summarizeComments(photoTitle, comments) {
     `\nComments:\n${formattedComments}`,
   ].join('\n');
 
-  const result = await callZaiChat([{ role: 'user', content: prompt }], {
-    model: textModel,
-    maxTokens: 600,
-    maxAttempts: 2,
+  const { text, modelUsed } = await callGemini([{ text: prompt }], {
+    jsonMode: false,
+    temperature: 0.4,
   });
 
   return {
-    summary: result.text,
-    modelUsed: result.modelUsed,
+    summary: text,
+    modelUsed,
   };
 }
 

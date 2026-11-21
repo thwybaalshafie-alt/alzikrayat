@@ -34,7 +34,7 @@ async function analyzePhoto(req, res, next) {
 
     return res.status(200).json({
       message: 'AI photo analysis completed',
-      model: modelUsed || process.env.ZAI_MODEL || 'glm-4.6v-flash',
+      model: modelUsed || process.env.GEMINI_MODEL || 'gemini-3.8-flash',
       aiTags: photo.aiTags,
       aiCaption: photo.aiCaption,
     });
@@ -72,7 +72,7 @@ async function summarizePhotoComments(req, res, next) {
 
     return res.status(200).json({
       message: 'Comments summarized successfully',
-      model: modelUsed || process.env.ZAI_TEXT_MODEL || 'glm-4.5-flash',
+      model: modelUsed || process.env.GEMINI_MODEL || 'gemini-3.8-flash',
       commentCount: comments.length,
       summary,
     });
@@ -93,13 +93,12 @@ async function suggestMetadata(req, res, next) {
 
     const { title, description, tags, modelUsed } = await suggestPhotoMetadata(
       req.file.buffer,
-      req.file.mimetype,
-      req.file.originalname
+      req.file.mimetype
     );
 
     return res.status(200).json({
       message: 'Metadata suggestion generated',
-      model: modelUsed || process.env.ZAI_MODEL || 'glm-4.6v-flash',
+      model: modelUsed || process.env.GEMINI_MODEL || 'gemini-3.8-flash',
       title,
       description,
       tags,

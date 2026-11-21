@@ -57,7 +57,7 @@ export default function UploadForm({ userId, onUploadSuccess }) {
       if (data.title) setTitle(data.title);
       if (data.description) setDescription(data.description);
       setAiMessage(
-        `Suggested by Z.AI (${data.model || 'GLM-4.6V-Flash'})` +
+        `Suggested by Gemini (${data.model || 'gemini-3.8-flash'})` +
           (data.tags?.length ? ` · Tags: ${data.tags.map((t) => `#${t}`).join(' ')}` : '')
       );
     } catch (err) {
@@ -133,8 +133,8 @@ export default function UploadForm({ userId, onUploadSuccess }) {
                 disabled={suggesting || uploading}
               >
                 {suggesting
-                  ? '✨ Analyzing with Z.AI...'
-                  : '✨ AI Suggest Title & Caption (GLM-4.6V-Flash)'}
+                  ? '✨ Analyzing Image...'
+                  : '✨ AI Suggest Title & Caption (Gemini Vision)'}
               </button>
             </div>
           </div>
@@ -179,8 +179,8 @@ export default function UploadForm({ userId, onUploadSuccess }) {
           onChange={(e) => setAutoAnalyze(e.target.checked)}
         />
         <span>
-          <strong>Auto-tag with Z.AI Vision (GLM-4.6V-Flash)</strong> — automatically generate
-          searchable tags and visual caption on upload.
+          <strong>Auto-tag with Gemini Vision</strong> — automatically analyze your uploaded image
+          to generate accurate searchable tags and a visual caption.
         </span>
       </label>
 

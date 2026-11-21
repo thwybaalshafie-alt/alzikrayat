@@ -7,7 +7,7 @@
 
 ## 1. Overview
 
-Alzikrayat (MERN Edition) is a full-stack photo sharing web application built using MongoDB, Express.js, React, and Node.js. All backend routes, controllers, middleware, Mongoose schemas, and React components were written directly without meta-frameworks like Next.js or NestJS. The project keeps the three-tier separation between the React UI, Express REST API, and MongoDB database, and also adds AI photo tagging and comment summarization using Z.AI (`glm-4.6v-flash`).
+Alzikrayat (MERN Edition) is a full-stack photo sharing web application built using MongoDB, Express.js, React, and Node.js. All backend routes, controllers, middleware, Mongoose schemas, and React components were written directly without meta-frameworks like Next.js or NestJS. The project keeps the three-tier separation between the React UI, Express REST API, and MongoDB database, and also adds AI photo tagging, captioning, and comment summarization using Google Gemini (`gemini-flash-lite-latest`).
 
 ## 2. Three-Tier Architecture
 
@@ -50,14 +50,14 @@ The database uses three Mongoose models in `server/models/`:
   - `LoginRegister.jsx` switches between `LoginForm` and `RegisterForm`.
 - **Responsive Design (`styles/index.css`):** Uses a monochrome black, grey, and white layout with media queries at `1024px` and `720px` so pages adapt across desktop, tablet, and mobile screens.
 
-## 6. AI Integration (Z.AI `glm-4.6v-flash`)
+## 6. AI Integration (Google Gemini Vision)
 
-`server/services/aiService.js`, `aiController.js`, and `aiRoutes.js` connect to Z.AI's OpenAI-compatible `/chat/completions` endpoint using `glm-4.6v-flash`:
+`server/services/aiService.js`, `aiController.js`, and `aiRoutes.js` connect to Google AI Studio's Gemini API (`gemini-flash-lite-latest`, with fallback to `gemini-3.5-flash-lite`):
 
-- **Photo Auto-Tagging & Captioning (`POST /api/ai/photos/:id/analyze`):** Reads the local image file as base64, requests tags and a short visual caption, and saves them to the photo record.
-- **Upload Metadata Suggestion (`POST /api/ai/suggest-metadata`):** Inspects an image preview in memory and suggests a title, description, and tags in the upload form.
+- **Photo Auto-Tagging & Captioning (`POST /api/ai/photos/:id/analyze`):** Reads the local image file as base64 (`inline_data`), inspects the image with Gemini Vision, and saves accurate tags and a visual caption to MongoDB.
+- **Upload Metadata Suggestion (`POST /api/ai/suggest-metadata`):** Inspects the selected image preview in memory and suggests an accurate title, description, and tags directly in the upload form.
 - **Comment Summarization (`POST /api/ai/photos/:id/summarize-comments`):** Summarizes all comments on a photo into a short overview.
-- Includes retry handling for temporary `429`/`503` responses from the external API.
+- Uses structured JSON mode (`responseMimeType: 'application/json'`) and request timeouts with automatic model fallback.
 
 ## 7. Testing & Verification
 

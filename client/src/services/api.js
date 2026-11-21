@@ -62,7 +62,7 @@ export async function addCommentRequest(photoId, { userId, comment }) {
   return data;
 }
 
-// AI (Z.AI)
+// AI (Gemini)
 export async function analyzePhotoWithAi(photoId) {
   const { data } = await api.post(`/ai/photos/${photoId}/analyze`);
   return data;

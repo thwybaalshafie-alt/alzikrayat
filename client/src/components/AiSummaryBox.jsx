@@ -16,7 +16,7 @@ export default function AiSummaryBox({ photoId, commentCount }) {
       setLoading(true);
       const data = await summarizeCommentsWithAi(photoId);
       setSummary(data.summary);
-      setModelUsed(data.model || 'GLM-4.6V-Flash');
+      setModelUsed(data.model || 'gemini-3.8-flash');
     } catch (err) {
       setError(getErrorMessage(err, 'Could not summarize comments right now.'));
     } finally {
@@ -27,7 +27,7 @@ export default function AiSummaryBox({ photoId, commentCount }) {
   return (
     <div className="ai-box" style={{ marginTop: '0.75rem', marginBottom: '1rem' }}>
       <div className="ai-box-header">
-        <span className="ai-badge">✨ AI Comment Summary (Z.AI)</span>
+        <span className="ai-badge">✨ AI Comment Summary (Gemini)</span>
         <button
           type="button"
           className="btn btn-ai btn-sm"
@@ -57,7 +57,7 @@ export default function AiSummaryBox({ photoId, commentCount }) {
         </div>
       ) : (
         <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Generate an instant AI summary of community discussion using Z.AI GLM-4.6V-Flash.
+          Generate an instant AI summary of community discussion using Google Gemini.
         </p>
       )}
     </div>

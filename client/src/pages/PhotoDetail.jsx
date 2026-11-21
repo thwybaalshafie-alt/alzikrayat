@@ -88,7 +88,7 @@ export default function PhotoDetail() {
         aiCaption: data.aiCaption || prev.aiCaption,
       }));
     } catch (err) {
-      setAiError(getErrorMessage(err, 'Unable to analyze photo with Z.AI right now.'));
+      setAiError(getErrorMessage(err, 'Unable to analyze photo with Gemini AI right now.'));
     } finally {
       setAnalyzing(false);
     }
@@ -206,7 +206,7 @@ export default function PhotoDetail() {
 
             <div className="ai-box">
               <div className="ai-box-header">
-                <span className="ai-badge">✨ Z.AI Vision Insight (GLM-4.6V-Flash)</span>
+                <span className="ai-badge">✨ Gemini Vision Insight</span>
                 <button
                   type="button"
                   className="btn btn-ai btn-sm"
@@ -216,8 +216,8 @@ export default function PhotoDetail() {
                   {analyzing
                     ? 'Analyzing Image...'
                     : photo.aiTags?.length
-                      ? 'Re-Analyze with Z.AI'
-                      : 'Analyze Photo with Z.AI'}
+                      ? 'Re-Analyze with AI'
+                      : 'Analyze Photo with AI'}
                 </button>
               </div>
 
@@ -227,8 +227,8 @@ export default function PhotoDetail() {
                 <p style={{ margin: '0 0 0.75rem', fontSize: '0.92rem' }}>{photo.aiCaption}</p>
               ) : (
                 <p style={{ margin: '0 0 0.65rem', fontSize: '0.86rem', color: 'var(--text-muted)' }}>
-                  Click &ldquo;Analyze Photo with Z.AI&rdquo; to automatically tag this photo and
-                  generate an AI visual caption.
+                  Click &ldquo;Analyze Photo with AI&rdquo; to automatically inspect this photo and
+                  generate accurate tags and a visual caption.
                 </p>
               )}
 

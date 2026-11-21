@@ -45,12 +45,12 @@ export default function Home() {
   return (
     <div>
       <section className="hero-banner">
-        <span className="hero-badge">Alzikrayat · MERN Edition + Z.AI Vision</span>
+        <span className="hero-badge">Alzikrayat · MERN Edition + Gemini Vision</span>
         <h1 className="hero-title">Share Your Memories</h1>
         <p className="hero-subtitle">
           Alzikrayat is a full-stack photo-sharing community where you can upload, organize,
-          discover, and discuss unforgettable moments — enhanced with Z.AI GLM-4.6V-Flash smart
-          auto-tagging and comment summarization.
+          discover, and discuss unforgettable moments — enhanced with Gemini AI smart auto-tagging
+          and comment summarization.
         </p>
         <div className="hero-actions">
           <Link to="/gallery" className="btn btn-white">
@@ -139,10 +139,10 @@ export default function Home() {
             </p>
           </div>
           <div className="about-feature-card">
-            <h4>Z.AI Vision Intelligence</h4>
+            <h4>Gemini Vision Intelligence</h4>
             <p>
-              Powered by GLM-4.6V-Flash to auto-tag uploaded images, suggest captions, and summarize
-              photo discussions with a single click.
+              Powered by Google Gemini to inspect uploaded images, auto-tag photos, suggest
+              accurate captions, and summarize photo discussions with a single click.
             </p>
           </div>
         </div>

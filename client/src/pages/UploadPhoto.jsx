@@ -33,8 +33,8 @@ export default function UploadPhoto() {
       <div style={{ marginBottom: '1.35rem' }}>
         <h1 style={{ margin: '0 0 0.35rem', fontSize: '1.75rem' }}>Upload a New Memory</h1>
         <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.93rem' }}>
-          Share a photo with the community. You can also let Z.AI GLM-4.6V-Flash suggest a title,
-          caption, and searchable tags.
+          Share a photo with the community. You can also let Gemini AI inspect your image and
+          suggest an accurate title, caption, and searchable tags.
         </p>
       </div>
 

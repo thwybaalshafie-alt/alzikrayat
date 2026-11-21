@@ -32,7 +32,7 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     service: 'Alzikrayat MERN REST API',
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    aiModel: process.env.ZAI_MODEL || 'glm-4.6v-flash',
+    aiModel: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
     timestamp: new Date().toISOString(),
   });
 });

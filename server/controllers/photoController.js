@@ -122,7 +122,7 @@ async function create(req, res, next) {
     let aiCaption = '';
 
     const shouldAutoAnalyze = autoAnalyze === true || autoAnalyze === 'true';
-    if (shouldAutoAnalyze && process.env.ZAI_API_KEY) {
+    if (shouldAutoAnalyze && process.env.GEMINI_API_KEY) {
       try {
         const analysis = await analyzePhotoFile(req.file.path, title, description);
         aiTags = analysis.tags;
